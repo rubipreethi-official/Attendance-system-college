@@ -26,7 +26,7 @@ const AuthLogin = () => {
     e.preventDefault();
     
     if (isHistoryLogin) {
-      if (username === 'VCET' && password === 'VCET@123') {
+      if (username === 'ADMIN' && password === 'ADMIN') {
         localStorage.setItem('isHistoryAuthenticated', 'true');
         navigate('/history');
       } else {
@@ -102,6 +102,12 @@ const AuthLogin = () => {
                     Back to Dashboard
                   </button>
                 )}
+                <label className="block text-indigo-300 text-sm font-medium mb-2">
+                  username : ADMIN
+                </label>
+                <label className="block text-indigo-300 text-sm font-medium mb-2">
+                  Password : ADMIN
+                </label>
               </div>
             </form>
           </div>
