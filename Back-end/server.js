@@ -220,6 +220,52 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // ============= FIRST YEAR ENDPOINTS (25CYSE) =============
+app.delete('/api/students/first-year/all', authenticateToken, async (req, res) => {
+  try {
+    const result = await FirstYearStudent.deleteMany({});
+    res.json({ 
+      message: 'First year students deleted', 
+      deletedCount: result.deletedCount 
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/students/second-year/all', authenticateToken, async (req, res) => {
+  try {
+    const result = await SecondYearStudent.deleteMany({});
+    res.json({ 
+      message: 'Second year students deleted', 
+      deletedCount: result.deletedCount 
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+app.delete('/api/students/third-year/all', authenticateToken, async (req, res) => {
+  try {
+    const result = await thirdyear.deleteMany({});
+    res.json({ 
+      message: 'Third year students deleted', 
+      deletedCount: result.deletedCount 
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+app.delete('/api/students/final-year/all', authenticateToken, async (req, res) => {
+  try {
+    const result = await finalyear.deleteMany({});
+    res.json({ 
+      message: 'Final year students deleted', 
+      deletedCount: result.deletedCount 
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 app.get('/api/students/first-year', authenticateToken, async (req, res) => {
   try {
@@ -304,6 +350,7 @@ app.post('/api/students/second-year/upload', authenticateToken, upload.single('f
     res.status(500).json({ error: error.message });
   }
 });
+
 app.get('/api/students/third-year', authenticateToken, async (req, res) => {
   try {
     const students = await thirdyear.find().sort({ sNo: 1 });
