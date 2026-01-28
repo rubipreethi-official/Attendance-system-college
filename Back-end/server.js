@@ -9,16 +9,38 @@ require('dotenv').config();
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// CORS Configuration
+const allowedOrigins = [
+  'https://attendance-1-xcfw.onrender.com',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://attendance-v875.onrender.com'
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
+  credentials: true
+}));
+
 app.use(express.json());
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/attendance');
+const MONGODB_URI = process.env.MONGODB_URI || process.env.Mongo_URI;
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
 // ============= SCHEMAS =============
 
-// Your existing Attendance Schema
+// Your existing Attendance Schema (from index.js)
 const attendanceCountSchema = new mongoose.Schema({
   date: {
     type: Date,
@@ -103,36 +125,10 @@ const secondYearStudentSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// Student Schema for Third Year (23CYSE)
-const thirdYearStudentSchema = new mongoose.Schema({
-  sNo: { type: Number, required: true },
-  rollNo: { type: String, required: true, unique: true },
-  name: { type: String, required: true },
-  regNo: { type: String },
-  year: { type: Number, default: 3 },
-  department: { type: String, default: 'CSE' },
-  section: { type: String, default: 'A' },
-  createdAt: { type: Date, default: Date.now }
-});
-
-// Student Schema for Final Year (22CYSE)
-const finalYearStudentSchema = new mongoose.Schema({
-  sNo: { type: Number, required: true },
-  rollNo: { type: String, required: true, unique: true },
-  name: { type: String, required: true },
-  regNo: { type: String },
-  year: { type: Number, default: 4 },
-  department: { type: String, default: 'CSE' },
-  section: { type: String, default: 'B' },
-  createdAt: { type: Date, default: Date.now }
-});
-
 const AttendanceCount = mongoose.model('AttendanceCount', attendanceCountSchema);
 const Admin = mongoose.model('Admin', adminSchema);
 const FirstYearStudent = mongoose.model('FirstYearStudent', firstYearStudentSchema);
 const SecondYearStudent = mongoose.model('SecondYearStudent', secondYearStudentSchema);
-const ThirdYearStudent = mongoose.model('ThirdYearStudent', thirdYearStudentSchema);
-const FinalYearStudent = mongoose.model('FinalYearStudent', finalYearStudentSchema);
 
 // ============= MIDDLEWARE =============
 
@@ -200,9 +196,8 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// ============= FIRST YEAR ENDPOINTS (25CYSE) =============
 
-
-// Get First Year Students
 app.get('/api/students/first-year', authenticateToken, async (req, res) => {
   try {
     const students = await FirstYearStudent.find().sort({ sNo: 1 });
@@ -212,7 +207,6 @@ app.get('/api/students/first-year', authenticateToken, async (req, res) => {
   }
 });
 
-// Upload First Year Students (Excel/CSV)
 app.post('/api/students/first-year/upload', authenticateToken, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -233,10 +227,7 @@ app.post('/api/students/first-year/upload', authenticateToken, upload.single('fi
       section: 'E'
     }));
 
-    // Delete existing first year students
     await FirstYearStudent.deleteMany({});
-    
-    // Insert new students
     await FirstYearStudent.insertMany(students);
     
     res.json({ 
@@ -250,7 +241,6 @@ app.post('/api/students/first-year/upload', authenticateToken, upload.single('fi
 
 // ============= SECOND YEAR ENDPOINTS (24CYSE) =============
 
-// Get Second Year Students
 app.get('/api/students/second-year', authenticateToken, async (req, res) => {
   try {
     const students = await SecondYearStudent.find().sort({ sNo: 1 });
@@ -260,7 +250,6 @@ app.get('/api/students/second-year', authenticateToken, async (req, res) => {
   }
 });
 
-// Upload Second Year Students (Excel/CSV)
 app.post('/api/students/second-year/upload', authenticateToken, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -281,10 +270,7 @@ app.post('/api/students/second-year/upload', authenticateToken, upload.single('f
       section: 'C'
     }));
 
-    // Delete existing second year students
     await SecondYearStudent.deleteMany({});
-    
-    // Insert new students
     await SecondYearStudent.insertMany(students);
     
     res.json({ 
@@ -296,133 +282,10 @@ app.post('/api/students/second-year/upload', authenticateToken, upload.single('f
   }
 });
 
-// ============= THIRD YEAR ENDPOINTS (23CYSE) =============
+// ============= ATTENDANCE ROUTES (Your existing routes from index.js) =============
 
-// Get Third Year Students
-app.get('/api/students/third-year', authenticateToken, async (req, res) => {
-  try {
-    const students = await ThirdYearStudent.find().sort({ sNo: 1 });
-    res.json(students);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Upload Third Year Students (Excel/CSV)
-app.post('/api/students/third-year/upload', authenticateToken, upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-
-    const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const data = XLSX.utils.sheet_to_json(sheet);
-
-    const students = data.map((row, index) => ({
-      sNo: row.SNo || row['S. No'] || index + 1,
-      rollNo: row.RollNo || row['Roll Number'] || '',
-      name: row.Name || row['Student Name'] || '',
-      regNo: row.RegNo || row['Register No'] || '',
-      year: 3,
-      department: 'CSE',
-      section: 'A'
-    }));
-
-    // Delete existing third year students
-    await ThirdYearStudent.deleteMany({});
-    
-    // Insert new students
-    await ThirdYearStudent.insertMany(students);
-    
-    res.json({ 
-      message: 'Third Year students uploaded successfully', 
-      count: students.length 
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-
-
-// Get Final Year Students
-app.get('/api/students/final-year', authenticateToken, async (req, res) => {
-  try {
-    const students = await FinalYearStudent.find().sort({ sNo: 1 });
-    res.json(students);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Upload Final Year Students (Excel/CSV)
-app.post('/api/students/final-year/upload', authenticateToken, upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-
-    const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const data = XLSX.utils.sheet_to_json(sheet);
-
-    const students = data.map((row, index) => ({
-      sNo: row.SNo || row['S. No'] || index + 1,
-      rollNo: row.RollNo || row['Roll Number'] || '',
-      name: row.Name || row['Student Name'] || '',
-      regNo: row.RegNo || row['Register No'] || '',
-      year: 4,
-      department: 'CSE',
-      section: 'B'
-    }));
-
-    // Delete existing final year students
-    await FinalYearStudent.deleteMany({});
-    
-    // Insert new students
-    await FinalYearStudent.insertMany(students);
-    
-    res.json({ 
-      message: 'Final Year students uploaded successfully', 
-      count: students.length 
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ============= DELETE STUDENT DATA ENDPOINTS =============
-
-// Delete all students of a specific year
-app.delete('/api/students/:year/all', authenticateToken, async (req, res) => {
-  try {
-    const { year } = req.params;
-    
-    const models = {
-      'first-year': FirstYearStudent,
-      'second-year': SecondYearStudent,
-      'third-year': ThirdYearStudent,
-      'final-year': FinalYearStudent
-    };
-    
-    const Model = models[year];
-    if (!Model) {
-      return res.status(400).json({ error: 'Invalid year specified' });
-    }
-    
-    const result = await Model.deleteMany({});
-    res.json({ 
-      message: `All ${year} students deleted successfully`, 
-      deletedCount: result.deletedCount 
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-
-app.post('/api', async (req, res) => {
+// Save daily attendance count
+app.post('/api/', async (req, res) => {
   try {
     const {
       presentCount,
@@ -435,121 +298,223 @@ app.post('/api', async (req, res) => {
       studentRecords
     } = req.body;
 
-    const attendance = new AttendanceCount({
-      date: new Date(),
+    const attendanceCount = new AttendanceCount({
       presentCount,
       absentCount,
       leaveCount,
       odCount,
       lateCount,
       totalStudents,
-      studentRecords,
-      attendanceData
+      attendanceData,
+      studentRecords
     });
-
-    await attendance.save();
-    res.json({ message: 'Attendance saved successfully', data: attendance });
+    
+    const savedRecord = await attendanceCount.save();
+    res.status(201).json(savedRecord);
   } catch (error) {
-    if (error.code === 11000) {
-      return res.status(400).json({ error: 'Attendance already saved for today' });
-    }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
-// Get Attendance History
-app.get('/api/attendance/history', async (req, res) => {
+// Get attendance history
+app.get('/api/', async (req, res) => {
   try {
-    const { startDate, endDate, search } = req.query;
+    const { startDate, endDate } = req.query;
     let query = {};
-
+    
     if (startDate && endDate) {
       query.date = {
         $gte: new Date(startDate),
         $lte: new Date(endDate)
       };
     }
+    
+    const records = await AttendanceCount.find(query)
+      .sort({ date: -1 })
+      .limit(30);
+    res.json(records);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
-    if (search) {
-      query.$or = [
-        { 'studentRecords.name': { $regex: search, $options: 'i' } },
-        { 'studentRecords.rollNo': { $regex: search, $options: 'i' } }
-      ];
+// Get student attendance history
+app.get('/api/student', async (req, res) => {
+  try {
+    const { name, rollNo } = req.query;
+    let query = {};
+
+    if (name) {
+      query['studentRecords.name'] = { $regex: name, $options: 'i' };
+    }
+    if (rollNo) {
+      query['studentRecords.rollNo'] = rollNo;
     }
 
     const records = await AttendanceCount.find(query).sort({ date: -1 });
-    res.json(records);
+
+    if (records.length === 0) {
+      return res.status(404).json({ message: 'No records found for this student' });
+    }
+
+    const studentStats = {
+      totalDays: records.length,
+      presentDays: 0,
+      absentDays: 0,
+      leaveDays: 0,
+      odDays: 0,
+      lateDays: 0,
+      dates: {
+        present: [],
+        absent: [],
+        leave: [],
+        od: [],
+        late: []
+      }
+    };
+
+    records.forEach(record => {
+      const studentRecord = record.studentRecords.find(sr => 
+        (name && sr.name.toLowerCase().includes(name.toLowerCase())) || 
+        (rollNo && sr.rollNo === rollNo)
+      );
+
+      if (studentRecord) {
+        const date = record.date.toLocaleDateString();
+        switch (studentRecord.status) {
+          case 'Present':
+            studentStats.presentDays++;
+            studentStats.dates.present.push(date);
+            break;
+          case 'Absent':
+            studentStats.absentDays++;
+            studentStats.dates.absent.push(date);
+            break;
+          case 'Leave':
+            studentStats.leaveDays++;
+            studentStats.dates.leave.push(date);
+            break;
+          case 'On Duty':
+            studentStats.odDays++;
+            studentStats.dates.od.push(date);
+            break;
+          case 'Late':
+            studentStats.lateDays++;
+            studentStats.dates.late.push(date);
+            break;
+        }
+      }
+    });
+
+    res.json({
+      studentInfo: records[0].studentRecords.find(sr => 
+        (name && sr.name.toLowerCase().includes(name.toLowerCase())) || 
+        (rollNo && sr.rollNo === rollNo)
+      ),
+      statistics: studentStats
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
-// Delete Attendance Record
-app.delete('/api/attendance/:id', async (req, res) => {
+// Get attendance for specific date
+app.get('/api/:date', async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await AttendanceCount.findByIdAndDelete(id);
+    const date = new Date(req.params.date);
+    const startOfDay = new Date(date.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(date.setHours(23, 59, 59, 999));
     
-    if (!result) {
-      return res.status(404).json({ error: 'Record not found' });
+    const record = await AttendanceCount.findOne({
+      date: {
+        $gte: startOfDay,
+        $lte: endOfDay
+      }
+    });
+    
+    if (!record) {
+      return res.status(404).json({ message: 'No record found for this date' });
     }
     
-    res.json({ message: 'Attendance record deleted successfully' });
+    res.json(record);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
+// Get statistics
+app.get('/api/stats/summary', async (req, res) => {
+  try {
+    const stats = await AttendanceCount.aggregate([
+      {
+        $group: {
+          _id: null,
+          avgPresent: { $avg: '$presentCount' },
+          avgAbsent: { $avg: '$absentCount' },
+          avgLeave: { $avg: '$leaveCount' },
+          avgOD: { $avg: '$odCount' },
+          totalDays: { $sum: 1 }
+        }
+      }
+    ]);
+    
+    res.json(stats[0] || {});
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
+// Delete record
+app.delete('/api/:id', async (req, res) => {
+  try {
+    const record = await AttendanceCount.findByIdAndDelete(req.params.id);
+    
+    if (!record) {
+      return res.status(404).json({ message: 'Record not found' });
+    }
+    
+    res.json({ message: 'Record deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date() });
+});
+
+// ============= INITIALIZE =============
 
 async function initializeDatabase() {
   try {
-    // Create initial admin if none exists
     const adminCount = await Admin.countDocuments();
     if (adminCount === 0) {
-      const hashedPassword = await bcrypt.hash('admin200', 10);
+      const hashedPassword = await bcrypt.hash('admin123', 10);
       await Admin.create({
         username: 'admin',
         password: hashedPassword
       });
-      
+      console.log('✅ Initial admin created: username=admin, password=admin123');
     }
 
-    
     const firstYearCount = await FirstYearStudent.countDocuments();
     const secondYearCount = await SecondYearStudent.countDocuments();
-    const thirdYearCount = await ThirdYearStudent.countDocuments();
-    const finalYearCount = await FinalYearStudent.countDocuments();
 
     console.log(`📊 Database Status:`);
     console.log(`   First Year Students: ${firstYearCount}`);
     console.log(`   Second Year Students: ${secondYearCount}`);
-    console.log(`   Third Year Students: ${thirdYearCount}`);
-    console.log(`   Final Year Students: ${finalYearCount}`);
     
   } catch (error) {
     console.error('Error initializing database:', error);
   }
 }
 
+// ============= START SERVER =============
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
   await initializeDatabase();
-  console.log('\n📍 Available Endpoints:');
-  console.log('   POST   /api/auth/login');
-  console.log('   GET    /api/students/first-year');
-  console.log('   POST   /api/students/first-year/upload');
-  console.log('   GET    /api/students/second-year');
-  console.log('   POST   /api/students/second-year/upload');
-  console.log('   GET    /api/students/third-year');
-  console.log('   POST   /api/students/third-year/upload');
-  console.log('   GET    /api/students/final-year');
-  console.log('   POST   /api/students/final-year/upload');
-  console.log('   DELETE /api/students/:year/all (delete all students of a year)');
-  console.log('   POST   /api');
-  console.log('   GET    /api/attendance/history');
-  console.log('   DELETE /api/attendance/:id');
-  console.log('\n✨ Ready to accept requests!\n');
+  console.log('✨ Ready to accept requests!');
 });

@@ -2,10 +2,10 @@
   "name": "attendance-backend",
   "version": "1.0.0",
   "description": "Secure Attendance Management System Backend",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "keywords": ["attendance", "management", "student"],
   "author": "",
@@ -19,5 +19,8 @@
     "multer": "^1.4.5-lts.1",
     "xlsx": "^0.18.5",
     "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
