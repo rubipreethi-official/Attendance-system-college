@@ -129,6 +129,9 @@ const AttendanceCount = mongoose.model('AttendanceCount', attendanceCountSchema)
 const Admin = mongoose.model('Admin', adminSchema);
 const FirstYearStudent = mongoose.model('FirstYearStudent', firstYearStudentSchema);
 const SecondYearStudent = mongoose.model('SecondYearStudent', secondYearStudentSchema);
+const thirdyear = mongoose.model('thirdyearstudent',secondYearStudentSchema);
+const finalyear = mongoose.model('finalyearstudent',secondYearStudentSchema);
+
 
 // ============= MIDDLEWARE =============
 
@@ -275,6 +278,85 @@ app.post('/api/students/second-year/upload', authenticateToken, upload.single('f
     
     res.json({ 
       message: 'Second Year students uploaded successfully', 
+      count: students.length 
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+app.get('/api/students/third-year', authenticateToken, async (req, res) => {
+  try {
+    const students = await thirdyear.find().sort({ sNo: 1 });
+    res.json(students);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+app.post('/api/students/third-year/upload', authenticateToken, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(sheet);
+
+    const students = data.map((row, index) => ({
+      sNo: row.SNo || row['S. No'] || index + 1,
+      rollNo: row.RollNo || row['Roll Number'] || '',
+      name: row.Name || row['Student Name'] || '',
+      regNo: row.RegNo || row['Register No'] || '',
+      year: 2,
+      department: 'CSE',
+      section: 'C'
+    }));
+
+    await thirdyear.deleteMany({});
+    await thirdyear.insertMany(students);
+    
+    res.json({ 
+      message: 'third Year students uploaded successfully', 
+      count: students.length 
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/students/final-year', authenticateToken, async (req, res) => {
+  try {
+    const students = await finalyear.find().sort({ sNo: 1 });
+    res.json(students);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+app.post('/api/students/final-year/upload', authenticateToken, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(sheet);
+
+    const students = data.map((row, index) => ({
+      sNo: row.SNo || row['S. No'] || index + 1,
+      rollNo: row.RollNo || row['Roll Number'] || '',
+      name: row.Name || row['Student Name'] || '',
+      regNo: row.RegNo || row['Register No'] || '',
+      year: 2,
+      department: 'CSE',
+      section: 'C'
+    }));
+
+    await finalyear.deleteMany({});
+    await finalyear.insertMany(students);
+    
+    res.json({ 
+      message: 'final Year students uploaded successfully', 
       count: students.length 
     });
   } catch (error) {
