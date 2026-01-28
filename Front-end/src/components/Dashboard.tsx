@@ -640,7 +640,7 @@ Have a Very Nice Day`;
                 )}
                 <div className="flex flex-col">
                   <span className="text-lg font-semibold text-white drop-shadow-glow">
-                    Status Updated
+                    Status Updated...
                   </span>
                   <span className="text-base text-white font-medium">
                     {notification.message}
@@ -655,8 +655,8 @@ Have a Very Nice Day`;
           variants={itemVariants}
           className="mt-8 text-center"
         >
-          <p className="text-xl font-bold text-gradient">
-            Developed By SANTHOSH
+          
+            
             <a 
               href="mailto:ksdsanthosh130@gmail.com" 
               className="ml-2 inline-flex items-center align-middle"
@@ -681,7 +681,7 @@ Have a Very Nice Day`;
                 </svg>
               </div>
             </a>
-          </p>
+          
         </motion.div>
       </motion.div>
     </div>
