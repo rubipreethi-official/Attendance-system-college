@@ -125,12 +125,32 @@ const secondYearStudentSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+const ThirdYearStudentSchema = new mongoose.Schema({
+  sNo: { type: Number, required: true },
+  rollNo: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
+  regNo: { type: String },
+  year: { type: Number, default: 2 },
+  department: { type: String, default: 'CSE' },
+  section: { type: String, default: 'C' },
+  createdAt: { type: Date, default: Date.now }
+});
+const finaYearStudentSchema = new mongoose.Schema({
+  sNo: { type: Number, required: true },
+  rollNo: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
+  regNo: { type: String },
+  year: { type: Number, default: 2 },
+  department: { type: String, default: 'CSE' },
+  section: { type: String, default: 'C' },
+  createdAt: { type: Date, default: Date.now }
+});
 const AttendanceCount = mongoose.model('AttendanceCount', attendanceCountSchema);
 const Admin = mongoose.model('Admin', adminSchema);
 const FirstYearStudent = mongoose.model('FirstYearStudent', firstYearStudentSchema);
 const SecondYearStudent = mongoose.model('SecondYearStudent', secondYearStudentSchema);
-const thirdyear = mongoose.model('thirdyearstudent',secondYearStudentSchema);
-const finalyear = mongoose.model('finalyearstudent',secondYearStudentSchema);
+const thirdyear = mongoose.model('thirdyearstudent',ThirdYearStudentSchema);
+const finalyear = mongoose.model('finalyearstudent',finaYearStudentSchema);
 
 
 // ============= MIDDLEWARE =============
