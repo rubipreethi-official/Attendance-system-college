@@ -19,6 +19,8 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [attendance, setAttendance] = useState<{ [key: string]: string }>({});
   const [date, setDate] = useState("");
+  const [selectedYear, setSelectedYear] = useState<'first-year' | 'second-year' | 'third-year' | 'final-year'>('second-year');
+  const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<{
     message: string;
     type: 'success' | 'error';
@@ -45,6 +47,10 @@ const Dashboard = () => {
     localStorage.removeItem('isAuthenticated');
     navigate('/');
   };
+  const handleAdmin = () => {
+    
+    navigate('/admin');
+  };
 
   const handleDelete = () => {
     // Clear all attendance records
@@ -52,20 +58,81 @@ const Dashboard = () => {
     showNotification('All records deleted successfully!', 'success');
   };
 
-  useEffect(() => {
-    fetch("./III_CSE_C_NAME_LIST_FINAL.json")
-      .then((response) => response.json())
-      .then((data) => {
-        setStudents(data);
-        const initialAttendance: { [key: string]: string } = {};
-        data.forEach((student: any) => {
-          initialAttendance[student.SNo] = "Present"; 
-        });
-        setAttendance(initialAttendance);
-        setDate(new Date().toLocaleDateString("en-GB")); 
-      })
-      .catch((error) => console.error("Error loading data:", error));
-  }, []);
+useEffect(() => {
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('adminToken');
+      
+      // Debug logs
+      console.log('API_URL:', API_URL);
+      console.log('Selected Year:', selectedYear);
+      console.log('Token exists:', !!token);
+      
+      if (!token) {
+        throw new Error('No authentication token. Please login again.');
+      }
+      
+      if (!API_URL) {
+        throw new Error('API URL is not configured. Check VITE_API_URL environment variable.');
+      }
+      
+      const url = `${API_URL}/api/students/${selectedYear}`;
+      console.log('Fetching from:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error response:', errorData);
+        throw new Error(errorData.error || `Failed to fetch students (${response.status})`);
+      }
+      
+      const data = await response.json();
+      console.log('Students fetched:', data);
+      
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error(`No ${selectedYear === 'first-year' ? 'First Year' : 'Second Year'} students found. Please upload data from Admin Panel.`);
+      }
+      
+      // Map backend data to your frontend format
+      const formattedData = data.map((student: any) => ({
+        SNo: student.sNo.toString(),
+        Name: selectedYear === 'first-year' ? student.studentName : student.name,
+        RollNo: selectedYear === 'first-year' ? student.rollNumber : student.rollNo,
+        RegNo: selectedYear === 'first-year' ? student.registerNo : (student.regNo || '')
+      }));
+      
+      setStudents(formattedData);
+      
+      // Initialize attendance
+      const initialAttendance: { [key: string]: string } = {};
+      formattedData.forEach((student: any) => {
+        initialAttendance[student.SNo] = "Present";
+      });
+      setAttendance(initialAttendance);
+      setDate(new Date().toLocaleDateString("en-GB"));
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error("Error loading students:", errorMessage);
+      showNotification(errorMessage, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  fetchStudents();
+}, [selectedYear]);
 
   const handleAttendanceChange = (sno: string, status: string) => {
     const student = students.find((s: Student) => s.SNo === sno);
@@ -239,15 +306,78 @@ Have a Very Nice Day`;
       <div className="stars3"></div>
       <div className="stars4"></div>
       {/* Header with navigation buttons */}
-      <div className="flex justify-end items-center gap-4 mb-6">
-        <button
-          onClick={handleLogout}
-          className="bg-gradient-to-r from-violet-900/50 to-pink-900/50 hover:from-violet-800/60 hover:to-pink-800/60 
-          text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 
-          border border-violet-800/30 whitespace-nowrap"
-        >
-          Logout
-        </button>
+      <div className="flex justify-between items-center gap-4 mb-6">
+        {/* Year Selector */}
+        <div className="flex gap-2 flex-wrap">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedYear('first-year')}
+            className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm ${
+              selectedYear === 'first-year'
+                ? 'bg-gradient-to-r from-blue-900/80 to-cyan-900/80 text-white border-2 border-blue-400'
+                : 'bg-[#0a0b1a] text-white/70 border border-[#1a1b3a] hover:bg-[#0f1225]'
+            }`}
+          >
+            🎓 I Year
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedYear('second-year')}
+            className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm ${
+              selectedYear === 'second-year'
+                ? 'bg-gradient-to-r from-blue-900/80 to-cyan-900/80 text-white border-2 border-blue-400'
+                : 'bg-[#0a0b1a] text-white/70 border border-[#1a1b3a] hover:bg-[#0f1225]'
+            }`}
+          >
+            📚 II Year
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedYear('third-year')}
+            className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm ${
+              selectedYear === 'third-year'
+                ? 'bg-gradient-to-r from-blue-900/80 to-cyan-900/80 text-white border-2 border-blue-400'
+                : 'bg-[#0a0b1a] text-white/70 border border-[#1a1b3a] hover:bg-[#0f1225]'
+            }`}
+          >
+            👨‍🎓 III Year
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedYear('final-year')}
+            className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm ${
+              selectedYear === 'final-year'
+                ? 'bg-gradient-to-r from-blue-900/80 to-cyan-900/80 text-white border-2 border-blue-400'
+                : 'bg-[#0a0b1a] text-white/70 border border-[#1a1b3a] hover:bg-[#0f1225]'
+            }`}
+          >
+            🎉 IV Year
+          </motion.button>
+        </div>
+
+        {/* Admin and Logout buttons */}
+        <div className="flex gap-4">
+          <button
+            onClick={handleAdmin}
+            className="bg-gradient-to-r from-violet-900/50 to-pink-900/50 hover:from-violet-800/60 hover:to-pink-800/60 
+            text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 
+            border border-violet-800/30 whitespace-nowrap"
+          >
+            Admin
+          </button>
+          <button
+            onClick={handleLogout}
+            className="bg-gradient-to-r from-violet-900/50 to-pink-900/50 hover:from-violet-800/60 hover:to-pink-800/60 
+            text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 
+            border border-violet-800/30 whitespace-nowrap"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       <motion.div
@@ -287,7 +417,7 @@ Have a Very Nice Day`;
           className="text-center mb-8"
         >
           <h1 className="text-4xl sm:text-5xl font-bold mb-4 text-white">
-            Attendance Management II-C
+            Attendance Management 
           </h1>
           <p className="text-lg text-white/70">
             Your gateway to student attendance tracking

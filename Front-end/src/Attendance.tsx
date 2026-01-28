@@ -212,8 +212,8 @@ const Attendance = () => {
       setError(null);
       
       const url = date 
-        ? `${API_URL}/api/${date}`
-        : `${API_URL}/api`;
+        ? `${API_URL}/api/attendance/history?startDate=${date}&endDate=${date}`
+        : `${API_URL}/api/attendance/history`;
         
       const response = await fetch(url, {
         headers: {
@@ -438,7 +438,7 @@ const Attendance = () => {
     if (!deleteConfirmation.recordId) return;
 
     try {
-      const response = await fetch(`${API_URL}/api/${deleteConfirmation.recordId}`, {
+      const response = await fetch(`${API_URL}/api/attendance/${deleteConfirmation.recordId}`, {
         method: 'DELETE',
         headers: {
           'Accept': 'application/json',

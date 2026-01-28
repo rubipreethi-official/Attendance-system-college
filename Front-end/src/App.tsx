@@ -5,6 +5,7 @@ import AuthLogin from "./components/AuthLogin";
 import Attendance from "./Attendance";
 import ProtectedRoute from "./ProtectedRoute";
 import Dashboard from "./components/Dashboard";
+import AdminPanel from "./components/AdminPanel";
 
 const App = () => {
   return (
@@ -28,6 +29,9 @@ const App = () => {
         </ProtectedRoute>
         } 
       />
+      <Route path="/admin" element={<ProtectedRoute>
+          <AdminPanel />
+        </ProtectedRoute>} />
     </Routes>
   );
 };

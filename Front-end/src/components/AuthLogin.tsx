@@ -4,6 +4,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import '../styles.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const AuthLogin = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -23,25 +25,40 @@ const AuthLogin = () => {
     }
   }, [navigate, location, isHistoryLogin]);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (isHistoryLogin) {
-      if (username === 'VCET' && password === 'cyshis') {
-        localStorage.setItem('isHistoryAuthenticated', 'true');
-        navigate('/history');
-      } else {
-        setError('Invalid username or password');
-      }
+  const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (isHistoryLogin) {
+    // Keep your existing history login
+    if (username === 'VCET' && password === 'cyshis') {
+      localStorage.setItem('isHistoryAuthenticated', 'true');
+      navigate('/history');
     } else {
-      if (username === 'AdminAttendance' && password === 'cysdas') {
+      setError('Invalid username or password');
+    }
+  } else {
+    // NEW: API-based login for dashboard
+    try {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        localStorage.setItem('adminToken', data.token); // Save token
         localStorage.setItem('isAuthenticated', 'true');
         navigate('/dashboard');
       } else {
-        setError('Invalid username or password');
+        setError(data.error || 'Invalid credentials');
       }
+    } catch (error) {
+      setError('Cannot connect to server. Is backend running?');
     }
-  };
+  }
+};
 
   return (
     <div className="min-h-screen w-full bg-[#0f0f1a] bg-mesh flex items-center justify-center p-4">
