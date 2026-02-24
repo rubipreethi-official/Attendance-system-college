@@ -20,12 +20,18 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+
+    if (
+      origin.includes("vercel.app") ||
+      origin.includes("localhost") ||
+      origin.includes("onrender.com")
+    ) {
+      return callback(null, true);
     }
+
+    callback(new Error("Not allowed by CORS"));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
