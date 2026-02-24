@@ -11,6 +11,8 @@ const app = express();
 
 // CORS Configuration
 const allowedOrigins = [
+  'https://attendance-management-system-vcet-m.vercel.app',
+  'https://attendance-management-system-vcet-madurai.onrender.com',
   'https://attendance-management-system-z5qd.onrender.com',
   'http://localhost:5173',
   'http://localhost:3000',
